@@ -18,7 +18,8 @@ def menu():
         print("1. Adicionar Novo Gasto")
         print("2. Gerar Gráficos e Relatórios")
         print("3. Listar e Excluir Gasto")
-        print("4. Sair")
+        print("4. Configurar Metas")
+        print("5. Sair")
         
         opcao = input("\nEscolha uma opção: ")
 
@@ -60,8 +61,22 @@ def menu():
                     print(" Digite um número de ID válido.")
             else:
                 print(" Nada para excluir.") 
-        
         elif opcao == '4':
+        
+            print("\n--- ⚙️ CONFIGURAR METAS DE ORÇAMENTO ---")
+            metas = visualizacao.carregar_metas()
+            print("Metas atuais:", metas)
+            
+            categoria = input("Qual categoria deseja alterar (ex: Alimentação)? ")
+            try:
+                novo_limite = float(input(f"Qual o novo limite para {categoria}? "))
+                metas[categoria] = novo_limite
+                visualizacao.salvar_metas(metas)
+                print(f" Meta de {categoria} atualizada para R$ {novo_limite:.2f}!")
+            except ValueError:
+                print(" Valor inválido.")
+        
+        elif opcao == '5':
             print("Até logo!")
             break
         else:
@@ -69,3 +84,5 @@ def menu():
 
 if __name__ == "__main__":
     menu()
+    
+    

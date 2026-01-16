@@ -6,3 +6,5 @@ outputs/*.png
 outputs/*.xlsx
 __pycache__/
 .env
+
+*.json

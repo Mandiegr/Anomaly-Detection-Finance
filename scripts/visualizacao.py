@@ -2,18 +2,31 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 import os
+import json
 
 OUTPUT_DIR = os.path.join(os.path.dirname(__file__), '..', 'outputs')
+METAS_FILE = os.path.join(os.path.dirname(__file__), '..', 'data', 'metas.json')
 
-METAS = {
-    'Alimentação': 500.0,
-    'Transporte': 300.0,
-    'Lazer': 200.0,
-    'Moradia': 1500.0
-}
+
+def carregar_metas():
+    
+    if not os.path.exists(METAS_FILE):
+        padrao = {'Alimentação': 500.0, 'Moradia': 1500.0, 'Transporte': 300.0}
+        with open(METAS_FILE, 'w') as f:
+            json.dump(padrao, f)
+        return padrao
+    
+    with open(METAS_FILE, 'r') as f:
+        return json.load(f)
+
+def salvar_metas(novas_metas):
+    with open(METAS_FILE, 'w') as f:
+        json.dump(novas_metas, f, indent=4)
 
 def gerar_relatorios(df):
     os.makedirs(OUTPUT_DIR, exist_ok=True)
+    
+    metas_carregadas = carregar_metas()
     
     plt.figure(figsize=(10,6))
     sns.barplot(data=df[df['tipo']=='Débito'], x='categoria', y='valor', estimator=sum, hue='categoria', palette='viridis', legend=False)
@@ -33,9 +46,8 @@ def gerar_relatorios(df):
             print(f"• {categoria}: {percentual:.1f}% (R$ {valor:.2f})")
     
     print("\n--- VERIFICAÇÃO DE ORÇAMENTO ---")
-    for categoria, limite in METAS.items():
+    gastos_atuais = df[df['tipo'] == 'Débito'].groupby('categoria')['valor'].sum()
+    for categoria, limite in metas_carregadas.items():
         gasto_real = gastos_atuais.get(categoria, 0)
         if gasto_real > limite:
-            print(f" ALERTA:'{categoria}' estourou! (Excedeu R$ {gasto_real - limite:.2f})")
-        elif gasto_real > (limite * 0.8):
-            print(f" ATENÇÃO: '{categoria}' está em 80% do limite.")
+            print(f" ALERTA: '{categoria}' estourou! (Excedeu R$ {gasto_real - limite:.2f})")
