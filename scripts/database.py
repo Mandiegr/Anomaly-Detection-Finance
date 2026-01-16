@@ -40,7 +40,16 @@ def criar_banco():
                 conn.commit()
                 logging.info("Banco de dados inicializado com dados fictícios.")
     except sqlite3.Error as e:
-        logging.error(f"Erro ao interagir com o banco de dados: {e}")
+        logging.error(f"Erro ao interagir com o banco de dados: {e}")     
+        
+def carregar_dados():
+    
+    try:
+        return sqlite3.connect(DB_PATH)
+    except sqlite3.Error as e:
+        logging.error(f"Erro ao conectar para leitura: {e}")
+        return None
+    
 
 def adicionar_transacao(data, descricao, categoria, valor, tipo):
 
@@ -55,3 +64,20 @@ def adicionar_transacao(data, descricao, categoria, valor, tipo):
             logging.info(f"Transação '{descricao}' registrada com sucesso!")
     except sqlite3.Error as e:
         logging.error(f"Falha ao registrar transação: {e}")
+        
+        
+        
+def excluir_transacao(id_transacao):
+    try:
+        with sqlite3.connect(DB_PATH) as conn:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM transacoes WHERE id = ?", (id_transacao,))
+            if cursor.rowcount > 0:
+                logging.info(f"Transação ID {id_transacao} removida.")
+                return True
+            else:
+                logging.warning(f"ID {id_transacao} não encontrado.")
+                return False
+    except sqlite3.Error as e:
+        logging.error(f"Erro ao excluir: {e}")
+        return False
