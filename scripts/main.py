@@ -39,7 +39,7 @@ def menu():
             
             if not df.empty:
                 visualizacao.gerar_relatorios(df)
-                print("✅ Sucesso! Verifique a pasta 'outputs'.")
+                print(" Sucesso! Verifique a pasta 'outputs'.")
             else:
                 print("Sem dados para gerar relatórios.")
                 
@@ -63,7 +63,7 @@ def menu():
                 print(" Nada para excluir.") 
         elif opcao == '4':
         
-            print("\n--- ⚙️ CONFIGURAR METAS DE ORÇAMENTO ---")
+            print("\n--- CONFIGURAR METAS DE ORÇAMENTO ---")
             metas = visualizacao.carregar_metas()
             print("Metas atuais:", metas)
             
