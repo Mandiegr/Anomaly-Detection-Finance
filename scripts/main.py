@@ -17,7 +17,8 @@ def menu():
         print("\n--- ANALISADOR DE GASTOS 2026 ---")
         print("1. Adicionar Novo Gasto")
         print("2. Gerar Gráficos e Relatórios")
-        print("3. Sair")
+        print("3. Listar e Excluir Gasto")
+        print("4. Sair")
         
         opcao = input("\nEscolha uma opção: ")
 
@@ -42,6 +43,25 @@ def menu():
                 print("Sem dados para gerar relatórios.")
                 
         elif opcao == '3':
+
+            conn = database.carregar_dados()
+            df = pd.read_sql_query("SELECT id, data, descricao, valor FROM transacoes", conn)
+            conn.close()
+            
+            if not df.empty:
+                print("\n--- TRANSAÇÕES REGISTRADAS ---")
+                print(df.to_string(index=False)) 
+                
+                try:
+                    id_del = int(input("\nDigite o ID para excluir (ou 0 para cancelar): "))
+                    if id_del != 0:
+                        database.excluir_transacao(id_del)
+                except ValueError:
+                    print(" Digite um número de ID válido.")
+            else:
+                print(" Nada para excluir.") 
+        
+        elif opcao == '4':
             print("Até logo!")
             break
         else:
