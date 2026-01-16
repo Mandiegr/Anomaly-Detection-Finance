@@ -26,25 +26,40 @@ def menu():
         if opcao == '1':
             desc = input("Descrição (ex: Café): ")
             cat = input("Categoria (ex: Alimentação): ")
-            val = float(input("Valor (ex: 15.50): "))
-            data_hoje = datetime.now().strftime("%Y-%m-%d")
             
-            database.adicionar_transacao(data_hoje, desc, cat, val, 'Débito')
+            try: 
+                val = float(input("Valor (ex: 15.50): "))
+                print("Data: Pressione ENTER para hoje ou digite no formato AAAA-MM-DD")
+                data_input = input("Data (ex: 2026-02-15): ")
+                
+                if data_input == "":
+                    data_final = datetime.now().strftime("%Y-%m-%d")
+                else:
+                    datetime.strptime(data_input, "%Y-%m-%d")
+                    data_final = data_input
+                
+             
+                database.adicionar_transacao(data_final, desc, cat, val, 'Débito')
+            except ValueError:
+                print(" Erro: Formato de valor ou data inválido!")
             
         elif opcao == '2':
+            print("\n--- RELATÓRIOS POR MÊS ---")
+            print("Deixe em branco para ver o GERAL ou digite o mês (01 a 12):")
+            mes = input("Mês: ")
+            
             print(" Processando relatórios...")
             conn = database.carregar_dados()
             df = pd.read_sql_query("SELECT * FROM transacoes", conn)
             conn.close()
             
             if not df.empty:
-                visualizacao.gerar_relatorios(df)
-                print(" Sucesso! Verifique a pasta 'outputs'.")
+                visualizacao.gerar_relatorios(df, mes if mes != "" else None)
+                print(" finalmente! Verifique a pasta 'outputs'.")
             else:
                 print("Sem dados para gerar relatórios.")
                 
         elif opcao == '3':
-
             conn = database.carregar_dados()
             df = pd.read_sql_query("SELECT id, data, descricao, valor FROM transacoes", conn)
             conn.close()
@@ -61,8 +76,8 @@ def menu():
                     print(" Digite um número de ID válido.")
             else:
                 print(" Nada para excluir.") 
+
         elif opcao == '4':
-        
             print("\n--- CONFIGURAR METAS DE ORÇAMENTO ---")
             metas = visualizacao.carregar_metas()
             print("Metas atuais:", metas)
@@ -84,5 +99,3 @@ def menu():
 
 if __name__ == "__main__":
     menu()
-    
-    

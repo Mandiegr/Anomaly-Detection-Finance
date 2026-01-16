@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import os
 import json
+import database
 
 OUTPUT_DIR = os.path.join(os.path.dirname(__file__), '..', 'outputs')
 METAS_FILE = os.path.join(os.path.dirname(__file__), '..', 'data', 'metas.json')
@@ -31,9 +32,7 @@ def detectar_anomalias(df):
     media = gastos['valor'].mean()
     desvio = gastos['valor'].std()
     
-  
     limite_anomalia = media + (1.5 * desvio)
-    
     anomalias = gastos[gastos['valor'] > limite_anomalia]
     
     if not anomalias.empty:
@@ -42,15 +41,48 @@ def detectar_anomalias(df):
             print(f"   (Sua média é R$ {media:.2f}. Este valor fugiu muito do padrão!)")
     else:
         print(" Nenhum comportamento fora do padrão detectado.")
+        
+def comparar_meses(df_completo, mes_atual, mes_anterior):
+    
+    print(f"\n--- COMPARAÇÃO: MÊS {mes_anterior} vs MÊS {mes_atual} ---")
+    
+    df_completo = df_completo.copy()
+    df_completo['mes_temp'] = pd.to_datetime(df_completo['data']).dt.strftime('%m')
+    
+    gastos_atual = df_completo[(df_completo['mes_temp'] == mes_atual) & (df_completo['tipo'] == 'Débito')]['valor'].sum()
+    gastos_anterior = df_completo[(df_completo['mes_temp'] == mes_anterior) & (df_completo['tipo'] == 'Débito')]['valor'].sum()
+    
+    if gastos_anterior > 0:
+        diferenca = gastos_anterior - gastos_atual
+        percentual = (diferenca / gastos_anterior) * 100
+        
+        if diferenca > 0:
+            print(f" Economia real de R$ {diferenca:.2f} ({percentual:.1f}% a menos que o mês anterior).")
+        else:
+            print(f" Aumento de gastos de R$ {abs(diferenca):.2f} ({abs(percentual):.1f}% a mais que o mês anterior).")
+    else:
+        print(" Dados insuficientes no mês anterior para comparação.")
 
-def gerar_relatorios(df):
+def gerar_relatorios(df, mes_selecionado=None):
     os.makedirs(OUTPUT_DIR, exist_ok=True)
+    
+    df_original = df.copy() 
+    
+    if mes_selecionado:
+        df['mes_temp'] = pd.to_datetime(df['data']).dt.strftime('%m')
+        df = df[df['mes_temp'] == mes_selecionado].copy()
+        
+        if df.empty:
+            print(f"\n Não há gastos registrados para o mês {mes_selecionado}.")
+            return
+    
     metas_carregadas = carregar_metas()
     
     plt.figure(figsize=(10,6))
     sns.barplot(data=df[df['tipo']=='Débito'], x='categoria', y='valor', estimator=sum, hue='categoria', palette='viridis', legend=False)
-    plt.title("Gastos por Categoria & Detecção de Anomalias")
-    plt.savefig(os.path.join(OUTPUT_DIR, 'grafico.png'))
+    plt.title(f"Gastos por Categoria - Mês {mes_selecionado if mes_selecionado else 'Geral'}")
+    plt.xticks(rotation=45)
+    plt.savefig(os.path.join(OUTPUT_DIR, f'grafico_mes_{mes_selecionado}.png'))
     plt.close()
 
     df.to_excel(os.path.join(OUTPUT_DIR, 'relatorio.xlsx'), index=False)
@@ -64,7 +96,6 @@ def gerar_relatorios(df):
             percentual = (valor / total_geral) * 100
             print(f"• {categoria}: {percentual:.1f}% (R$ {valor:.2f})")
     
-   
     print("\n--- VERIFICAÇÃO DE ORÇAMENTO ---")
     for categoria, limite in metas_carregadas.items():
         gasto_real = gastos_atuais.get(categoria, 0)
@@ -72,3 +103,9 @@ def gerar_relatorios(df):
             print(f" ALERTA: '{categoria}' estourou! (Excedeu R$ {gasto_real - limite:.2f})")
 
     detectar_anomalias(df)
+    
+    if mes_selecionado and mes_selecionado.isdigit():
+        mes_num = int(mes_selecionado)
+        if mes_num > 1:
+            mes_ant = str(mes_num - 1).zfill(2)
+            comparar_meses(df_original, mes_selecionado, mes_ant)
