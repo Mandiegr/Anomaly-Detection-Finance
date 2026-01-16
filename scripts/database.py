@@ -1,0 +1,57 @@
+import sqlite3
+import os
+import logging
+
+
+logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
+
+DB_PATH = os.path.join(os.path.dirname(__file__), '..', 'data', 'financas.db')
+
+def criar_banco():
+    try:
+     
+        os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
+        
+        with sqlite3.connect(DB_PATH) as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS transacoes (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    data DATE, 
+                    descricao TEXT, 
+                    categoria TEXT, 
+                    valor REAL, 
+                    tipo TEXT
+                )
+            ''')
+          
+            cursor.execute("SELECT COUNT(*) FROM transacoes")
+            if cursor.fetchone()[0] == 0:
+                
+                seed_data = [
+                    ('2026-01-01', 'Aluguel', 'Moradia', 1200.00, 'Débito'),
+                    ('2026-01-05', 'Salário', 'Renda', 5000.00, 'Crédito'),
+                    ('2026-01-10', 'Mercado', 'Alimentação', 450.00, 'Débito')
+                ]
+                cursor.executemany('''
+                    INSERT INTO transacoes (data, descricao, categoria, valor, tipo) 
+                    VALUES (?,?,?,?,?)
+                ''', seed_data)
+                conn.commit()
+                logging.info("Banco de dados inicializado com dados fictícios.")
+    except sqlite3.Error as e:
+        logging.error(f"Erro ao interagir com o banco de dados: {e}")
+
+def adicionar_transacao(data, descricao, categoria, valor, tipo):
+
+    try:
+        with sqlite3.connect(DB_PATH) as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                INSERT INTO transacoes (data, descricao, categoria, valor, tipo)
+                VALUES (?, ?, ?, ?, ?)
+            ''', (data, descricao, categoria, valor, tipo))
+            conn.commit()
+            logging.info(f"Transação '{descricao}' registrada com sucesso!")
+    except sqlite3.Error as e:
+        logging.error(f"Falha ao registrar transação: {e}")
