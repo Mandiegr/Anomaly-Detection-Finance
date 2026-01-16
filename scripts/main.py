@@ -3,9 +3,9 @@ import os
 import pandas as pd
 from datetime import datetime
 
-folder-path = os.path.dirname(os.path.abspath(__file__))
-if folder-path not in sys.path:
-    sys.path.insert(0, folder-path)
+folder_path = os.path.dirname(os.path.abspath(__file__))
+if folder_path not in sys.path:
+    sys.path.insert(0, folder_path)
 
 import database
 import visualizacao
