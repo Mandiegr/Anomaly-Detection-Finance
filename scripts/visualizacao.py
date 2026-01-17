@@ -4,6 +4,7 @@ import seaborn as sns
 import os
 import json
 import database
+from datetime import datetime
 
 OUTPUT_DIR = os.path.join(os.path.dirname(__file__), '..', 'outputs')
 METAS_FILE = os.path.join(os.path.dirname(__file__), '..', 'data', 'metas.json')
@@ -62,6 +63,49 @@ def comparar_meses(df_completo, mes_atual, mes_anterior):
             print(f" Aumento de gastos de R$ {abs(diferenca):.2f} ({abs(percentual):.1f}% a mais que o mês anterior).")
     else:
         print(" Dados insuficientes no mês anterior para comparação.")
+        
+def prever_gastos_anual(df):
+    print("\n---PREVISÃO INTELIGENTE (Forecast 2026) ---")
+    
+    gastos = df[df['tipo'] == 'Débito'].copy()
+    if gastos.empty:
+        print(" Sem dados suficientes para prever.")
+        return
+
+    gastos['data'] = pd.to_datetime(gastos['data'])
+  
+    data_min = gastos['data'].min()
+    data_max = datetime.now()
+    dias_passados = (data_max - data_min).days + 1
+    total_gasto = gastos['valor'].sum()
+    media_diaria = total_gasto / dias_passados
+    projecao_anual = media_diaria * 365
+    
+    print(f"• Com base nos últimos {dias_passados} dias, sua média é R$ {media_diaria:.2f}/dia.")
+    print(f"• PREVISÃO: Se manter esse ritmo, você gastará R$ {projecao_anual:.2f} até o fim de 2026.")
+    
+    gastos['acumulado'] = gastos['valor'].cumsum()
+    
+    plt.figure(figsize=(10, 5))
+    plt.plot(gastos['data'], gastos['acumulado'], marker='o', label='Gasto Real Acumulado', color='blue')
+    
+    datas_previsao = [data_min, datetime(2026, 12, 31)]
+    valores_previsao = [0, projecao_anual]
+    
+    plt.plot(datas_previsao, valores_previsao, linestyle='--', color='red', label='Linha de Tendência')
+    
+    plt.title("Projeção de Gastos Anual - Regressão Linear Simples")
+    plt.xlabel("Data")
+    plt.ylabel("Valor Acumulado (R$)")
+    plt.legend()
+    plt.grid(True, alpha=0.3)
+    
+    grafico_path = os.path.join(OUTPUT_DIR, 'previsao_tendencia.png')
+    plt.savefig(grafico_path)
+    plt.close()
+    
+    print(f" Gráfico de tendência salvo em: {grafico_path}")
+    
 
 def gerar_relatorios(df, mes_selecionado=None):
     os.makedirs(OUTPUT_DIR, exist_ok=True)

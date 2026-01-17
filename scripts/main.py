@@ -20,6 +20,7 @@ def menu():
         print("3. Listar e Excluir Gasto")
         print("4. Configurar Metas")
         print("5. Sair")
+        print("6. Previsão de Gastos ")
         
         opcao = input("\nEscolha uma opção: ")
 
@@ -94,8 +95,18 @@ def menu():
         elif opcao == '5':
             print("Até logo!")
             break
+        
+        elif opcao == '6':
+            conn = database.carregar_dados()
+            df = pd.read_sql_query("SELECT * FROM transacoes", conn)
+            conn.close()
+            if not df.empty:
+                visualizacao.prever_gastos_anual(df)
+            else:
+                print(" Adicione gastos primeiro.")
         else:
             print("Opção inválida!")
+            
 
 if __name__ == "__main__":
     menu()
