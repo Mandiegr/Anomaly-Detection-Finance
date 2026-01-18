@@ -21,6 +21,7 @@ def menu():
         print("4. Configurar Metas")
         print("5. Sair")
         print("6. Previsão de Gastos ")
+        print("7. Adicionar Despesa Fixa (Recorrência)")
         
         opcao = input("\nEscolha uma opção: ")
 
@@ -103,9 +104,22 @@ def menu():
             if not df.empty:
                 visualizacao.prever_gastos_anual(df)
             else:
-                print(" Adicione gastos primeiro.")
+                print(" Adicione gastos primeiro para a IA analisar.")
+        elif opcao == '7':
+            desc = input("Descrição da despesa fixa: ")
+            cat = input("Categoria: ")
+            try:
+                val = float(input("Valor mensal: "))
+                m_inicio = input("Mês de início (01-12): ")
+                m_fim = input("Mês de fim (01-12): ")
+                
+                database.adicionar_recorrencia(desc, cat, val, m_inicio, m_fim)
+            except ValueError:
+                print(" Erro nos dados informados!")
+
         else:
-            print("Opção inválida!")
+            print(" Opção inválida! Tente novamente.")
+        
             
 
 if __name__ == "__main__":

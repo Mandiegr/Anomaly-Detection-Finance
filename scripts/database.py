@@ -81,3 +81,20 @@ def excluir_transacao(id_transacao):
     except sqlite3.Error as e:
         logging.error(f"Erro ao excluir: {e}")
         return False
+    
+def adicionar_recorrencia(descricao, categoria, valor, mes_inicio, mes_fim):
+    conn = carregar_dados()
+    cursor = conn.cursor()
+    
+    for mes in range(int(mes_inicio), int(mes_fim) + 1):
+        
+        data_fixa = f"2026-{str(mes).zfill(2)}-05"
+        
+        cursor.execute('''
+            INSERT INTO transacoes (data, descricao, categoria, valor, tipo)
+            VALUES (?, ?, ?, ?, ?)
+        ''', (data_fixa, descricao, categoria, valor, 'Débito'))
+    
+    conn.commit()
+    conn.close()
+    print(f" Recorrência de '{descricao}' adicionada do mês {mes_inicio} ao {mes_fim}!")
