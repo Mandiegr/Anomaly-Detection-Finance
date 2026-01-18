@@ -103,6 +103,7 @@ def menu():
             conn.close()
             if not df.empty:
                 visualizacao.prever_gastos_anual(df)
+                visualizacao.simular_economia(df)
             else:
                 print(" Adicione gastos primeiro para a IA analisar.")
         elif opcao == '7':
