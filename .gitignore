@@ -4,6 +4,7 @@ data/financas.db
 *.db
 outputs/*.png
 outputs/*.xlsx
+outputs/*.txt
 __pycache__/
 .env
 
