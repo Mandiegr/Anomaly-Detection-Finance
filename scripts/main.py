@@ -47,17 +47,16 @@ def menu():
             
         elif opcao == '2':
             print("\n--- RELATÓRIOS POR MÊS ---")
-            print("Deixe em branco para ver o GERAL ou digite o mês (01 a 12):")
-            mes = input("Mês: ")
+            mes = input("Mês (01-12) ou ENTER para Geral: ")
             
-            print(" Processando relatórios...")
             conn = database.carregar_dados()
             df = pd.read_sql_query("SELECT * FROM transacoes", conn)
             conn.close()
             
             if not df.empty:
                 visualizacao.gerar_relatorios(df, mes if mes != "" else None)
-                print(" finalmente! Verifique a pasta 'outputs'.")
+                visualizacao.exportar_plano_acao(df)
+                print("\n Processo concluído! Verifique a pasta 'outputs'.")
             else:
                 print("Sem dados para gerar relatórios.")
                 

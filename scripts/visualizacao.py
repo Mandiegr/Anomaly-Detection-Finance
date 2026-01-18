@@ -160,8 +160,8 @@ def gerar_relatorios(df, mes_selecionado=None):
     plt.xticks(rotation=45)
     plt.savefig(os.path.join(OUTPUT_DIR, f'grafico_mes_{mes_selecionado}.png'))
     plt.close()
-
     df.to_excel(os.path.join(OUTPUT_DIR, 'relatorio.xlsx'), index=False)
+
     gastos_atuais = df[df['tipo'] == 'Débito'].groupby('categoria')['valor'].sum()
     
     print("\n--- ANÁLISE DE IMPACTO NO BOLSO ---")
@@ -169,6 +169,46 @@ def gerar_relatorios(df, mes_selecionado=None):
     if total_geral > 0:
         for cat, val in gastos_atuais.items():
             print(f" • {cat}: {(val/total_geral)*100:.1f}% (R$ {val:.2f})")
-  
+
     verificar_alertas_orcamento(gastos_atuais, carregar_metas())
     detectar_anomalias(df)
+
+           
+def exportar_plano_acao(df):
+     plano_path = os.path.join(OUTPUT_DIR, 'plano_de_acao_2026.txt')
+     hoje = datetime.now().strftime('%d/%m/%Y')
+   
+     metas = carregar_metas()
+     gastos_atuais = df[df['tipo'] == 'Débito'].groupby('categoria')['valor'].sum()
+    
+     with open(plano_path, 'w', encoding='utf-8') as f:
+        f.write(f"--- PLANO DE AÇÃO FINANCEIRA 2026 ---\n")
+        f.write(f"Gerado em: {hoje}\n\n")
+        
+        f.write("1. DIAGNÓSTICO ATUAL\n")
+        for cat, valor in gastos_atuais.items():
+            f.write(f" • {cat}: R$ {valor:.2f}\n")
+            
+        f.write("\n2. ALERTAS CRÍTICOS\n")
+        avisos = False
+        for cat, limite in metas.items():
+            real = gastos_atuais.get(cat, 0)
+            if real > limite:
+                f.write(f" REDUZIR IMEDIATAMENTE: {cat} (R$ {real-limite:.2f} acima da meta)\n")
+                avisos = True
+        if not avisos: f.write(" Nenhuma meta estourada no momento.\n")
+
+        f.write("\n3. ESTRATÉGIA DE ECONOMIA (Meta -10%)\n")
+        
+        dias_restantes = (datetime(2026, 12, 31) - datetime.now()).days
+        dias_passados = max((datetime.now() - datetime(2026, 1, 1)).days, 1)
+        
+        for cat, valor in gastos_atuais.items():
+            economia = ((valor / dias_passados) * 0.10) * dias_restantes
+            if economia > 5:
+                f.write(f" Se cortar 10% de {cat}, você salva R$ {economia:.2f} até o fim do ano.\n")
+
+        f.write("\n--- FIM DO PLANO ---\n")
+     
+     print(f"\n Plano de ação exportado com sucesso para: {plano_path}")
+     
