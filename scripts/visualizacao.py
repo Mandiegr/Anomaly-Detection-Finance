@@ -56,45 +56,115 @@ def comparar_meses(df_completo, mes_atual, mes_anterior):
         print(" Dados insuficientes no mês anterior para comparação.")
 
 def prever_gastos_anual(df):
-    print("\n---PREVISÃO INTELIGENTE (IA Versão 2.0) ---")
+    print("\n---PREVISÃO INTELIGENTE ---")
+    
     gastos = df[df['tipo'] == 'Débito'].copy()
     if len(gastos) < 2:
-        print(" Dados insuficientes para criar uma tendência.")
+        print(" Dados insuficientes.")
         return
 
     gastos['data'] = pd.to_datetime(gastos['data'])
-    total_real_acumulado = gastos['valor'].sum()
+    data_hoje = datetime.now()
     
-    media_unitaria = gastos['valor'].mean()
-    desvio = gastos['valor'].std()
-    limite_outlier = media_unitaria + (2 * desvio)
+    resumo_fixos = gastos.groupby('descricao').agg(
+        valor=('valor', 'mean'),
+        ultima_data=('data', 'max'),
+        contagem=('id', 'count')
+    )
     
-    gastos_comuns = gastos[gastos['valor'] <= limite_outlier]
-    gastos_atipicos = gastos[gastos['valor'] > limite_outlier]
+    fixos = resumo_fixos[resumo_fixos['contagem'] > 1]
     
-    data_min = gastos['data'].min()
-    data_max = datetime.now()
-    dias_passados = max((data_max - data_min).days + 1, 1)
+    total_fixo_futuro = 0
+    print(" Compromissos fixos identificados:")
+    for desc, row in fixos.iterrows():
+       
+        meses_faltantes = 0
+        if row['ultima_data'] > data_hoje:
+           
+            meses_faltantes = (row['ultima_data'].year - data_hoje.year) * 12 + (row['ultima_data'].month - data_hoje.month)
+            if meses_faltantes < 0: meses_faltantes = 0
+            
+        total_fixo_futuro += (row['valor'] * meses_faltantes)
+        status = f"Faltam {meses_faltantes} meses" if meses_faltantes > 0 else "Finalizado"
+        print(f"  • {desc}: R$ {row['valor']:.2f} ({status})")
 
-    fim_do_ano = datetime(2026, 12, 31)
-    dias_restantes = max((fim_do_ano - data_max).days, 0)
+    variaveis = gastos[~gastos['descricao'].isin(fixos.index)].copy()
     
-    media_diaria_realista = gastos_comuns['valor'].sum() / dias_passados
-    previsao_restante = media_diaria_realista * dias_restantes
-    final_do_ano_estimado = total_real_acumulado + previsao_restante
+    media_v = variaveis['valor'].mean()
+    desvio_v = variaveis['valor'].std()
+   
+    variaveis_normais = variaveis[variaveis['valor'] <= (media_v + 1.5 * desvio_v)]
+    
+    dias_passados_ano = (data_hoje - datetime(2026, 1, 1)).days + 1
+    dias_restantes_ano = (datetime(2026, 12, 31) - data_hoje).days
+    
+    media_diaria_variavel = variaveis_normais['valor'].sum() / dias_passados_ano
+    total_variavel_projetado = media_diaria_variavel * dias_restantes_ano
 
-    print(f"• Analisados {len(gastos)} registros ({len(gastos_atipicos)} detectados como atípicos).")
-    print(f"• Média diária ajustada (sem ruído): R$ {media_diaria_realista:.2f}")
-    print(f"• PROJEÇÃO REALISTA FINAL: R$ {final_do_ano_estimado:.2f}")
+    total_ja_gasto = gastos['valor'].sum()
+    projecao_final = total_ja_gasto + total_fixo_futuro + total_variavel_projetado
 
-    teto_seguro = 40000 
-    if final_do_ano_estimado > teto_seguro:
-        excesso = final_do_ano_estimado - teto_seguro
-        print(f"\n INSIGHT: Você está R$ {excesso:.2f} acima do seu teto seguro.")
-        div_dias = max(dias_restantes, 1)
-        print(f" Sugestão: Reduza R$ {excesso/div_dias:.2f} nos gastos diários até Dezembro.")
-    else: 
-        print("\nParabéns! Seu ritmo atual está dentro de uma margem segura para o ano.")   
+    print("-" * 45)
+    print(f" Gasto Total até hoje: R$ {total_ja_gasto:.2f}")
+    print(f" Total de Fixos a vencer: R$ {total_fixo_futuro:.2f}")
+    print(f" Estimativa de Variáveis até Dez: R$ {total_variavel_projetado:.2f}")
+    print(f" PROJEÇÃO FINAL 2026: R$ {projecao_final:.2f}")
+    
+    if projecao_final > 40000:
+        print(f"\n DICA: Você terminará o ano com R$ {projecao_final:.2f}.")
+        print(f"Lembre-se: em Junho você terá um 'alívio' de R$ {valor_fixo_mensal:.2f} no orçamento!")
+    print("\n--- IA ESPECIALISTA EM FINANÇAS  ---")
+    
+    gastos = df[df['tipo'] == 'Débito'].copy()
+    if len(gastos) < 2:
+        print(" Dados insuficientes para uma análise realista.")
+        return
+
+    gastos['data'] = pd.to_datetime(gastos['data'])
+    data_hoje = datetime.now()
+    
+    recorrentes = gastos.groupby('descricao').filter(lambda x: len(x) > 1 and x['valor'].nunique() == 1)
+    valor_fixo_mensal = recorrentes.groupby('descricao')['valor'].mean().sum()
+   
+    variaveis = gastos[~gastos.index.isin(recorrentes.index)].copy()
+    
+    media_v = variaveis['valor'].mean()
+    desvio_v = variaveis['valor'].std()
+
+    variaveis_normais = variaveis[variaveis['valor'] <= (media_v + 2 * desvio_v)]
+    
+
+    meses_restantes = 12 - data_hoje.month
+    dias_passados_ano = (data_hoje - datetime(2026, 1, 1)).days + 1
+    dias_restantes_ano = (datetime(2026, 12, 31) - data_hoje).days
+    
+  
+    total_fixo_ano = valor_fixo_mensal * 12 
+    
+  
+    media_diaria_variavel = variaveis_normais['valor'].sum() / dias_passados_ano
+    total_variavel_projetado = media_diaria_variavel * 365
+    
+
+    outliers = variaveis[variaveis['valor'] > (media_v + 2 * desvio_v)]
+    total_outliers = outliers['valor'].sum()
+
+    projecao_final = total_fixo_ano + total_variavel_projetado + total_outliers
+
+    print(f" Gastos Fixos (Pós, etc): R$ {valor_fixo_mensal:.2f}/mês")
+    print(f" Gastos Variáveis (Dia a dia): R$ {media_diaria_variavel:.2f}/dia")
+    print(f" Gastos Extraordinários já feitos: R$ {total_outliers:.2f}")
+    print("-" * 45)
+    print(f" PROJEÇÃO FINAL 2026: R$ {projecao_final:.2f}")
+    
+    gasto_mensal_est = valor_fixo_mensal + (media_diaria_variavel * 30)
+    print(f"\n Seu custo de vida estimado é de R$ {gasto_mensal_est:.2f} por mês.")
+    
+    if projecao_final > 40000:
+        print(" DICA: Seus gastos variáveis estão acima do planejado. Revise as 'anomalias' no relatório.")
+    else:
+        print("Seu ritmo financeiro está saudável para 2026!")
+
 
 def gerar_relatorios(df, mes_selecionado=None):
     os.makedirs(OUTPUT_DIR, exist_ok=True)
