@@ -25,17 +25,13 @@ def salvar_metas(novas_metas):
 def detectar_anomalias(df):
     print("\n--- DETECÇÃO DE ANOMALIAS (Z-Score) ---")
     gastos = df[df['tipo'] == 'Débito'].copy()
-    
     if len(gastos) < 3:
         print(" Dados insuficientes para criar um padrão estatístico.")
         return      
-        
     media = gastos['valor'].mean()
     desvio = gastos['valor'].std()
-    
     limite_anomalia = media + (1.5 * desvio)
     anomalias = gastos[gastos['valor'] > limite_anomalia]
-    
     if not anomalias.empty:
         for _, row in anomalias.iterrows():
             print(f" ANOMALIA: '{row['descricao']}' custou R$ {row['valor']:.2f}")
@@ -44,84 +40,74 @@ def detectar_anomalias(df):
         print(" Nenhum comportamento fora do padrão detectado.")
         
 def comparar_meses(df_completo, mes_atual, mes_anterior):
-    
     print(f"\n--- COMPARAÇÃO: MÊS {mes_anterior} vs MÊS {mes_atual} ---")
-    
     df_completo = df_completo.copy()
     df_completo['mes_temp'] = pd.to_datetime(df_completo['data']).dt.strftime('%m')
-    
     gastos_atual = df_completo[(df_completo['mes_temp'] == mes_atual) & (df_completo['tipo'] == 'Débito')]['valor'].sum()
     gastos_anterior = df_completo[(df_completo['mes_temp'] == mes_anterior) & (df_completo['tipo'] == 'Débito')]['valor'].sum()
-    
     if gastos_anterior > 0:
         diferenca = gastos_anterior - gastos_atual
         percentual = (diferenca / gastos_anterior) * 100
-        
         if diferenca > 0:
             print(f" Economia real de R$ {diferenca:.2f} ({percentual:.1f}% a menos que o mês anterior).")
         else:
             print(f" Aumento de gastos de R$ {abs(diferenca):.2f} ({abs(percentual):.1f}% a mais que o mês anterior).")
     else:
         print(" Dados insuficientes no mês anterior para comparação.")
-        
+
 def prever_gastos_anual(df):
-    print("\n---PREVISÃO INTELIGENTE (Forecast 2026) ---")
-    
+    print("\n---PREVISÃO INTELIGENTE (IA Versão 2.0) ---")
     gastos = df[df['tipo'] == 'Débito'].copy()
-    if gastos.empty:
-        print(" Sem dados suficientes para prever.")
+    if len(gastos) < 2:
+        print(" Dados insuficientes para criar uma tendência.")
         return
 
     gastos['data'] = pd.to_datetime(gastos['data'])
-  
+    total_real_acumulado = gastos['valor'].sum()
+    
+    media_unitaria = gastos['valor'].mean()
+    desvio = gastos['valor'].std()
+    limite_outlier = media_unitaria + (2 * desvio)
+    
+    gastos_comuns = gastos[gastos['valor'] <= limite_outlier]
+    gastos_atipicos = gastos[gastos['valor'] > limite_outlier]
+    
     data_min = gastos['data'].min()
     data_max = datetime.now()
-    dias_passados = (data_max - data_min).days + 1
-    total_gasto = gastos['valor'].sum()
-    media_diaria = total_gasto / dias_passados
-    projecao_anual = media_diaria * 365
+    dias_passados = max((data_max - data_min).days + 1, 1)
+
+    fim_do_ano = datetime(2026, 12, 31)
+    dias_restantes = max((fim_do_ano - data_max).days, 0)
     
-    print(f"• Com base nos últimos {dias_passados} dias, sua média é R$ {media_diaria:.2f}/dia.")
-    print(f"• PREVISÃO: Se manter esse ritmo, você gastará R$ {projecao_anual:.2f} até o fim de 2026.")
-    
-    gastos['acumulado'] = gastos['valor'].cumsum()
-    
-    plt.figure(figsize=(10, 5))
-    plt.plot(gastos['data'], gastos['acumulado'], marker='o', label='Gasto Real Acumulado', color='blue')
-    
-    datas_previsao = [data_min, datetime(2026, 12, 31)]
-    valores_previsao = [0, projecao_anual]
-    
-    plt.plot(datas_previsao, valores_previsao, linestyle='--', color='red', label='Linha de Tendência')
-    
-    plt.title("Projeção de Gastos Anual - Regressão Linear Simples")
-    plt.xlabel("Data")
-    plt.ylabel("Valor Acumulado (R$)")
-    plt.legend()
-    plt.grid(True, alpha=0.3)
-    
-    grafico_path = os.path.join(OUTPUT_DIR, 'previsao_tendencia.png')
-    plt.savefig(grafico_path)
-    plt.close()
-    
-    print(f" Gráfico de tendência salvo em: {grafico_path}")
-    
+    media_diaria_realista = gastos_comuns['valor'].sum() / dias_passados
+    previsao_restante = media_diaria_realista * dias_restantes
+    final_do_ano_estimado = total_real_acumulado + previsao_restante
+
+    print(f"• Analisados {len(gastos)} registros ({len(gastos_atipicos)} detectados como atípicos).")
+    print(f"• Média diária ajustada (sem ruído): R$ {media_diaria_realista:.2f}")
+    print(f"• PROJEÇÃO REALISTA FINAL: R$ {final_do_ano_estimado:.2f}")
+
+    teto_seguro = 40000 
+    if final_do_ano_estimado > teto_seguro:
+        excesso = final_do_ano_estimado - teto_seguro
+        print(f"\n INSIGHT: Você está R$ {excesso:.2f} acima do seu teto seguro.")
+        div_dias = max(dias_restantes, 1)
+        print(f" Sugestão: Reduza R$ {excesso/div_dias:.2f} nos gastos diários até Dezembro.")
+    else: 
+        print("\nParabéns! Seu ritmo atual está dentro de uma margem segura para o ano.")   
 
 def gerar_relatorios(df, mes_selecionado=None):
     os.makedirs(OUTPUT_DIR, exist_ok=True)
-    
     df_original = df.copy() 
     
     if mes_selecionado:
         df['mes_temp'] = pd.to_datetime(df['data']).dt.strftime('%m')
         df = df[df['mes_temp'] == mes_selecionado].copy()
-        
         if df.empty:
             print(f"\n Não há gastos registrados para o mês {mes_selecionado}.")
             return
     
     metas_carregadas = carregar_metas()
-    
     plt.figure(figsize=(10,6))
     sns.barplot(data=df[df['tipo']=='Débito'], x='categoria', y='valor', estimator=sum, hue='categoria', palette='viridis', legend=False)
     plt.title(f"Gastos por Categoria - Mês {mes_selecionado if mes_selecionado else 'Geral'}")
@@ -130,7 +116,6 @@ def gerar_relatorios(df, mes_selecionado=None):
     plt.close()
 
     df.to_excel(os.path.join(OUTPUT_DIR, 'relatorio.xlsx'), index=False)
-    
     gastos_atuais = df[df['tipo'] == 'Débito'].groupby('categoria')['valor'].sum()
     total_geral = gastos_atuais.sum()
 
@@ -147,7 +132,6 @@ def gerar_relatorios(df, mes_selecionado=None):
             print(f" ALERTA: '{categoria}' estourou! (Excedeu R$ {gasto_real - limite:.2f})")
 
     detectar_anomalias(df)
-    
     if mes_selecionado and mes_selecionado.isdigit():
         mes_num = int(mes_selecionado)
         if mes_num > 1:
